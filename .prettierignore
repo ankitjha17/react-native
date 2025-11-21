@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+.expo/
+dist/
+web-build/
+*.tsbuildinfo
+
+# Generated files
+.expo/types/
+expo-env.d.ts
+
+# Native
+ios/
+android/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+
