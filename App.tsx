@@ -1,29 +1,61 @@
-import { NavigationContainer } from "@react-navigation/native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import Constants from "expo-constants";
-import { Text, View } from "react-native";
-import { RootStackParamList } from "./src/navigation/types";
+import React from "react";
+import { StatusBar } from "expo-status-bar";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createAuthProvider } from "./src/auth/AuthContext";
+import { authService } from "./src/services/auth/AuthService";
+import { RootNavigator } from "./src/navigation/RootNavigator";
+import { useAppBootstrap } from "./src/hooks/useAppBootstrap";
+import { ActivityIndicator, View, StyleSheet } from "react-native";
 
-import HomeScreen from "./src/screens/HomeScreen";
-import ProfileScreen from "./src/screens/ProfileScreen";
+const AuthProvider = createAuthProvider(authService);
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      retry: 1,
+    },
+  },
+});
 
-export default function App() {
-  const envName =
-    Constants.expoConfig?.extra?.APP_ENV ||
-    process.env.APP_ENV ||
-    "development";
+function App() {
+  const { ready, fontError } = useAppBootstrap();
+
+  if (!ready) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#000" />
+      </View>
+    );
+  }
+  if (fontError) {
+    console.warn("Font loading error:", fontError);
+  }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Profile" component={ProfileScreen} />
-      </Stack.Navigator>
-      <View style={{ padding: 10, backgroundColor: "#f0f0f0" }}>
-        <Text>Environment: {envName}</Text>
-      </View>
-    </NavigationContainer>
+    <SafeAreaProvider>
+      <StatusBar style="dark" />
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <RootNavigator />
+        </AuthProvider>
+      </QueryClientProvider>
+    </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+  },
+});
+
+export default App;
