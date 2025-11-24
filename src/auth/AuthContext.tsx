@@ -4,15 +4,20 @@ import React, {
   useMemo,
   useReducer,
   ReactNode,
+  useEffect,
 } from "react";
-import type {
-  AuthService,
-  Session,
-  AuthStatus,
-  LoginParams,
-  OtpParams,
-} from "./types";
-import { authViewModel } from "../viewmodels/AuthViewModel";
+import type { Session, AuthStatus, LoginParams, OtpParams } from "./types";
+import {
+  useSendOtp,
+  useVerifyOtp,
+  useResendOtp,
+  useLogout,
+} from "../modules/auth/auth.hooks";
+import {
+  validatePhoneNumber,
+  validateOtpCode,
+} from "../modules/auth/auth.validators";
+import { getCurrentSession } from "../modules/auth/auth.storage";
 
 // Auth State
 interface AuthState {
@@ -161,108 +166,224 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
 // Context
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Provider Factory
-export function createAuthProvider(authService: AuthService) {
-  return function AuthProvider({ children }: { children: ReactNode }) {
-    const [state, dispatch] = useReducer(authReducer, initialState);
+// Provider Component
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(authReducer, initialState);
+  const [isBootstrapped, setIsBootstrapped] = React.useState(false);
 
-    const actions: AuthActions = useMemo(
-      () => ({
-        async bootstrap() {
-          try {
-            dispatch({ type: "BOOTSTRAP_START" });
-            const session = await authService.getCurrentSession();
-            dispatch({ type: "BOOTSTRAP_SUCCESS", session });
-          } catch (error) {
-            dispatch({
-              type: "BOOTSTRAP_ERROR",
-              error:
-                error instanceof Error ? error.message : "Bootstrap failed",
+  // React Query hooks
+  const sendOtpMutation = useSendOtp();
+  const verifyOtpMutation = useVerifyOtp();
+  const resendOtpMutation = useResendOtp();
+  const logoutMutation = useLogout();
+
+  // Bootstrap on mount (only once)
+  useEffect(() => {
+    if (!isBootstrapped) {
+      setIsBootstrapped(true);
+      getCurrentSession()
+        .then((session) => {
+          dispatch({ type: "BOOTSTRAP_SUCCESS", session });
+        })
+        .catch((error) => {
+          dispatch({
+            type: "BOOTSTRAP_ERROR",
+            error: error instanceof Error ? error.message : "Bootstrap failed",
+          });
+        });
+    }
+  }, [isBootstrapped]);
+
+  // Update session when verifyOtp succeeds
+  useEffect(() => {
+    if (
+      verifyOtpMutation.isSuccess &&
+      verifyOtpMutation.data &&
+      verifyOtpMutation.variables
+    ) {
+      const session: Session = {
+        accessToken: verifyOtpMutation.data.accessToken,
+        refreshToken: verifyOtpMutation.data.refreshToken,
+        userPhone: verifyOtpMutation.variables.phone,
+      };
+      dispatch({ type: "OTP_VERIFY_SUCCESS", session });
+    }
+  }, [verifyOtpMutation.isSuccess]);
+
+  // Update state when logout succeeds
+  useEffect(() => {
+    if (logoutMutation.isSuccess) {
+      dispatch({ type: "LOGOUT_SUCCESS" });
+    }
+  }, [logoutMutation.isSuccess]);
+
+  // Use refs to store mutation functions to avoid re-renders
+  const sendOtpRef = React.useRef(sendOtpMutation.mutateAsync);
+  const verifyOtpRef = React.useRef(verifyOtpMutation.mutateAsync);
+  const resendOtpRef = React.useRef(resendOtpMutation.mutateAsync);
+  const logoutRef = React.useRef(logoutMutation.mutateAsync);
+  const sessionRef = React.useRef(state.session);
+
+  // Update refs when they change
+  React.useEffect(() => {
+    sendOtpRef.current = sendOtpMutation.mutateAsync;
+    verifyOtpRef.current = verifyOtpMutation.mutateAsync;
+    resendOtpRef.current = resendOtpMutation.mutateAsync;
+    logoutRef.current = logoutMutation.mutateAsync;
+    sessionRef.current = state.session;
+  });
+
+  const actions: AuthActions = useMemo(
+    () => ({
+      async bootstrap() {
+        try {
+          dispatch({ type: "BOOTSTRAP_START" });
+          const session = await getCurrentSession();
+          dispatch({ type: "BOOTSTRAP_SUCCESS", session });
+        } catch (error) {
+          dispatch({
+            type: "BOOTSTRAP_ERROR",
+            error: error instanceof Error ? error.message : "Bootstrap failed",
+          });
+        }
+      },
+
+      completeOnboarding() {
+        dispatch({ type: "COMPLETE_ONBOARDING" });
+      },
+
+      async requestLogin(params: LoginParams) {
+        if (!params.phone) {
+          dispatch({
+            type: "LOGIN_ERROR",
+            error: "Phone number is required",
+          });
+          return;
+        }
+
+        try {
+          dispatch({ type: "LOGIN_START" });
+          await sendOtpRef.current(params.phone);
+          dispatch({ type: "LOGIN_SUCCESS" });
+        } catch (error) {
+          dispatch({
+            type: "LOGIN_ERROR",
+            error: error instanceof Error ? error.message : "Login failed",
+          });
+        }
+      },
+
+      async verifyOtp(params: OtpParams) {
+        if (!params.phone || !params.code) {
+          dispatch({
+            type: "OTP_VERIFY_ERROR",
+            error: "Phone number and OTP code are required",
+          });
+          return;
+        }
+
+        try {
+          dispatch({ type: "OTP_VERIFY_START" });
+          await verifyOtpRef.current({
+            phone: params.phone,
+            otp: params.code,
+          });
+          // Session will be updated via useEffect when mutation succeeds
+        } catch (error) {
+          dispatch({
+            type: "OTP_VERIFY_ERROR",
+            error:
+              error instanceof Error
+                ? error.message
+                : "OTP verification failed",
+          });
+        }
+      },
+
+      async resendOtp(params: LoginParams) {
+        if (!params.phone) {
+          dispatch({
+            type: "LOGIN_ERROR",
+            error: "Phone number is required",
+          });
+          return;
+        }
+
+        try {
+          dispatch({ type: "LOGIN_START" });
+          await resendOtpRef.current(params.phone);
+          dispatch({ type: "LOGIN_SUCCESS" });
+        } catch (error) {
+          dispatch({
+            type: "LOGIN_ERROR",
+            error:
+              error instanceof Error ? error.message : "Failed to resend OTP",
+          });
+        }
+      },
+
+      async logout() {
+        try {
+          dispatch({ type: "LOGOUT_START" });
+
+          // Get refresh token from current session
+          const session = sessionRef.current || (await getCurrentSession());
+          if (session?.refreshToken) {
+            await logoutRef.current({
+              refreshToken: session.refreshToken,
+            });
+          } else {
+            // If no refresh token, just clear local session
+            await logoutRef.current({
+              refreshToken: "",
             });
           }
-        },
+          // State will be updated via useEffect when mutation succeeds
+        } catch (error) {
+          dispatch({
+            type: "LOGOUT_ERROR",
+            error: error instanceof Error ? error.message : "Logout failed",
+          });
+        }
+      },
 
-        completeOnboarding() {
-          dispatch({ type: "COMPLETE_ONBOARDING" });
-        },
+      clearError() {
+        dispatch({ type: "CLEAR_ERROR" });
+      },
 
-        async requestLogin(params: LoginParams) {
-          try {
-            dispatch({ type: "LOGIN_START" });
-            await authService.requestLogin(params);
-            dispatch({ type: "LOGIN_SUCCESS" });
-          } catch (error) {
-            dispatch({
-              type: "LOGIN_ERROR",
-              error: error instanceof Error ? error.message : "Login failed",
-            });
-          }
-        },
+      validatePhoneNumber(phone: string) {
+        return validatePhoneNumber(phone);
+      },
 
-        async verifyOtp(params: OtpParams) {
-          try {
-            dispatch({ type: "OTP_VERIFY_START" });
-            const session = await authService.verifyOtp(params);
-            dispatch({ type: "OTP_VERIFY_SUCCESS", session });
-          } catch (error) {
-            dispatch({
-              type: "OTP_VERIFY_ERROR",
-              error:
-                error instanceof Error
-                  ? error.message
-                  : "OTP verification failed",
-            });
-          }
-        },
+      validateOtpCode(code: string) {
+        return validateOtpCode(code);
+      },
+    }),
+    [] // Empty deps - using refs instead
+  );
 
-        async resendOtp(params: LoginParams) {
-          try {
-            dispatch({ type: "LOGIN_START" });
-            await authService.resendOtp(params);
-            dispatch({ type: "LOGIN_SUCCESS" });
-          } catch (error) {
-            dispatch({
-              type: "LOGIN_ERROR",
-              error:
-                error instanceof Error ? error.message : "Failed to resend OTP",
-            });
-          }
-        },
+  // Update loading state based on mutations
+  const loading = useMemo(
+    () =>
+      state.loading ||
+      sendOtpMutation.isPending ||
+      verifyOtpMutation.isPending ||
+      resendOtpMutation.isPending ||
+      logoutMutation.isPending,
+    [
+      state.loading,
+      sendOtpMutation.isPending,
+      verifyOtpMutation.isPending,
+      resendOtpMutation.isPending,
+      logoutMutation.isPending,
+    ]
+  );
 
-        async logout() {
-          try {
-            dispatch({ type: "LOGOUT_START" });
-            await authService.logout();
-            dispatch({ type: "LOGOUT_SUCCESS" });
-          } catch (error) {
-            dispatch({
-              type: "LOGOUT_ERROR",
-              error: error instanceof Error ? error.message : "Logout failed",
-            });
-          }
-        },
-
-        clearError() {
-          dispatch({ type: "CLEAR_ERROR" });
-        },
-
-        validatePhoneNumber(phone: string) {
-          return authViewModel.validatePhoneNumber(phone);
-        },
-
-        validateOtpCode(code: string) {
-          return authViewModel.validateOtpCode(code);
-        },
-      }),
-      []
-    );
-
-    return (
-      <AuthContext.Provider value={{ ...state, ...actions }}>
-        {children}
-      </AuthContext.Provider>
-    );
-  };
+  return (
+    <AuthContext.Provider value={{ ...state, loading, ...actions }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 // Hook to use Auth Context

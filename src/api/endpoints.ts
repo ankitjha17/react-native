@@ -22,3 +22,8 @@ export const AUTH_ENDPOINTS = {
 export const ONBOARDING_ENDPOINTS = {
   BASE: STRAPI_BASE_PATHS.ONBOARDING,
 } as const;
+
+// CMS Endpoints (alias for ONBOARDING_ENDPOINTS)
+export const CMS_ENDPOINTS = {
+  ONBOARDING: ONBOARDING_ENDPOINTS.BASE,
+} as const;

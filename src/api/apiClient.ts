@@ -4,7 +4,7 @@ import axios, {
   InternalAxiosRequestConfig,
 } from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { API_URL } from "../../config/env";
+import { API_URL } from "../config/env";
 import type { ApiResponse, RequestConfig } from "./types";
 
 const SESSION_KEY = "@insurup_session";
