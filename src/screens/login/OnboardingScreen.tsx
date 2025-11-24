@@ -8,7 +8,6 @@ import React, {
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
   Animated,
@@ -114,7 +113,7 @@ const OnboardingScreen = () => {
       // Initial setup
       progressAnimationsRef.current = steps.map(() => new Animated.Value(0));
     }
-  }, [steps.length]);
+  }, [steps, steps.length]);
 
   const progressAnimations = progressAnimationsRef.current;
 

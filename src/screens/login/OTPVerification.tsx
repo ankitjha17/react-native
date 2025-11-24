@@ -27,12 +27,15 @@ const OTPVerification = () => {
   const { goBack } = useAuthNavigation();
   const route = useRoute();
   const params = (route as any).params as { phone?: string } | undefined;
+
+  const phone = params?.phone || "";
+
   const maskedPhone = React.useMemo(() => {
-    const raw = params?.phone ?? "";
-    const digits = raw.replace(/\D/g, "");
+    const digits = phone.replace(/\D/g, "");
     if (digits.length < 6) return digits;
     return `${digits.slice(0, 2)}***${digits.slice(-4)}`;
-  }, [params]);
+  }, [phone]);
+
   const {
     verifyOtp,
     resendOtp,
@@ -40,32 +43,35 @@ const OTPVerification = () => {
     error: authError,
     validateOtpCode,
   } = useAuth();
+
   const {
     error: toastError,
     errorType,
     showApiError,
     clearError: clearToastError,
   } = useErrorToast();
+
   const [code, setCode] = useState(["", "", "", "", "", ""]);
-  const inputs = [
-    useRef<TextInput>(null),
-    useRef<TextInput>(null),
-    useRef<TextInput>(null),
-    useRef<TextInput>(null),
-    useRef<TextInput>(null),
-    useRef<TextInput>(null),
-  ];
   const [focusedIndex, setFocusedIndex] = useState<number | null>(0);
-
-  // Timer state
   const [timeLeft, setTimeLeft] = useState(60);
-  const [showResend, setShowResend] = useState(false);
 
-  // Fetch CMS data for ValidationScreen
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const inputs = Array.from({ length: 6 }, () => useRef<TextInput>(null));
+  const codeRef = useRef(code);
+  const inputsRef = useRef(inputs);
+
+  useEffect(() => {
+    codeRef.current = code;
+  }, [code]);
+
+  useEffect(() => {
+    inputsRef.current = inputs;
+  }, [inputs]);
+
+  /** CMS data */
   const { data: cmsData } = useCMSData({ pLevel: "" });
-  const validationScreenData = cmsData?.validationScreen;
-
   // Extract dynamic values with fallbacks
+  const validationScreenData = cmsData?.validationScreen;
   const title = validationScreenData?.title || "Enter Verification Code";
   const description =
     validationScreenData?.description ||
@@ -74,132 +80,116 @@ const OTPVerification = () => {
   const btnText = validationScreenData?.btnText || "Verify";
   const resendText = validationScreenData?.resend || "Resend";
   const logoUrl = validationScreenData?.logoUrl;
+
+  /** OTP change handler */
   const handleChange = (value: string, index: number) => {
     const sanitized = value.replace(/\D/g, "");
-    const next = [...code];
 
-    if (code[index] && sanitized.length === 1) {
-      next[index] = sanitized;
-      setCode(next);
+    // 6-digit paste
+    if (sanitized.length === 6 && value.length > 1) {
+      const arr = sanitized.split("").slice(0, 6);
+      setCode(arr);
+      inputsRef.current[5].current?.focus();
       return;
     }
-    if (sanitized.length <= 1) {
-      next[index] = sanitized;
-      setCode(next);
-      if (sanitized && index < inputs.length - 1) {
-        inputs[index + 1].current?.focus();
-      }
-      return;
-    }
-    let cursor = index;
-    for (let i = 0; i < sanitized.length && cursor < next.length; i++) {
-      next[cursor] = sanitized[i];
-      cursor++;
-    }
+
+    // Single digit typing
+    const next = [...codeRef.current];
+    next[index] = sanitized.slice(-1);
     setCode(next);
-    if (cursor <= inputs.length - 1) {
-      inputs[cursor].current?.focus();
+
+    if (sanitized && index < 5) {
+      inputsRef.current[index + 1].current?.focus();
     }
   };
 
+  /** Backspace handling */
   const handleKeyPress = (key: string, index: number) => {
-    if (key === "Backspace") {
-      if (code[index]) {
-        const next = [...code];
-        next[index] = "";
-        setCode(next);
-        return;
-      }
-      if (index > 0) {
-        inputs[index - 1].current?.focus();
-      }
+    if (key !== "Backspace") return;
+
+    const next = [...codeRef.current];
+
+    if (next[index]) {
+      next[index] = "";
+      setCode(next);
+      return;
+    }
+
+    if (index > 0) {
+      inputsRef.current[index - 1].current?.focus();
     }
   };
 
+  /** Verify OTP */
   const handleVerify = async () => {
-    const otpCode = code.join("");
-    console.log("OTP Verification: Attempting to verify code:", otpCode);
+    const otpCode = codeRef.current.join("");
 
     const validation = validateOtpCode(otpCode);
-    console.log("OTP Verification: Validation result:", validation);
-
     if (!validation.isValid) {
-      console.log("OTP Verification: Validation failed:", validation.error);
-      showApiError(validation.error || "Please enter a valid 6-digit OTP code");
+      showApiError(validation.error || "Please enter a valid 6-digit OTP");
       return;
     }
 
     try {
-      console.log("OTP Verification: Calling verifyOtp...");
-      const phoneNumber = params?.phone || "";
-      await verifyOtp({ code: otpCode, phone: phoneNumber });
-      console.log(
-        "OTP Verification: Success! Auth status should change to authenticated"
-      );
-    } catch (err) {
-      console.error("OTP verification failed:", err);
+      await verifyOtp({ code: otpCode, phone });
+    } catch {
+      /* handled by AuthContext */
     }
   };
 
+  /** Timer effect - counts down from 60 to 0 */
   useEffect(() => {
-    console.log("OTP: Timer started");
-    setTimeLeft(60);
-    setShowResend(false);
-
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          console.log("OTP: Timer ended, showing resend");
-          setShowResend(true);
-          return 0;
-        }
-        return prev - 1;
-      });
+      setTimeLeft((prev) => (prev <= 1 ? 0 : prev - 1));
     }, 1000);
 
-    return () => {
-      console.log("OTP: Timer cleared");
-      clearInterval(timer);
-    };
+    return () => clearInterval(timer);
   }, []);
 
+  /** Clear OTP when timer expires - separate effect for reliable state update */
   useEffect(() => {
-    if (authError) {
-      showApiError(authError);
+    if (timeLeft === 0) {
+      // Clear ALL digits when timer expires, regardless of how many are entered
+      const currentCode = codeRef.current.join("");
+      if (currentCode.length > 0) {
+        setCode(["", "", "", "", "", ""]);
+        // Small delay to ensure state update before focusing
+        setTimeout(() => {
+          inputsRef.current[0].current?.focus();
+        }, 0);
+      }
     }
+  }, [timeLeft]);
+
+  /** Show error toast from API */
+  useEffect(() => {
+    if (authError) showApiError(authError);
   }, [authError, showApiError]);
 
-  // Format time as MM:SS
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  /** Timer format */
+  const formatTime = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = String(sec % 60).padStart(2, "0");
+    return `${m}:${s}`;
   };
 
-  // Handle resend OTP
+  /** Resend OTP */
   const handleResend = async () => {
-    const phoneNumber = params?.phone || "";
-    if (!phoneNumber) {
-      showApiError("Phone number is required");
-      return;
-    }
+    if (!phone) return showApiError("Phone number is required");
 
-    console.log("OTP: Resending OTP for phone:", phoneNumber);
     try {
-      await resendOtp({ phone: phoneNumber });
-      console.log("OTP: Resend successful, restarting timer");
-      // Restart timer
+      await resendOtp({ phone });
+
+      setCode(["", "", "", "", "", ""]);
+      inputsRef.current[0].current?.focus();
+
       setTimeLeft(60);
-      setShowResend(false);
-      // Success message can be shown via a success toast if needed
-    } catch (err) {
-      console.error("OTP: Resend failed:", err);
-      showApiError(err instanceof Error ? err.message : "Failed to resend OTP");
+    } catch {
+      showApiError("Failed to resend OTP");
     }
   };
 
-  const horizontalPadding = 20;
-  const contentWidth = width - horizontalPadding * 2;
+  const contentWidth = width - 40;
 
   return (
     <SafeAreaView style={styles.mainContainer}>
@@ -211,50 +201,41 @@ const OTPVerification = () => {
         duration={5000}
         position="top"
       />
+
       <View style={[styles.internalContainer, { width: contentWidth }]}>
         <View style={styles.spacer32} />
-        {/* Header: Back + Centered Logo */}
+
+        {/* Header */}
         <View style={styles.headerRow}>
           <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
             onPress={goBack}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             style={styles.headerIconButton}
           >
             <Icon name="chevron-back-outline" size={24} color={colors.black} />
           </TouchableOpacity>
+
           <ReusableImage
             uri={logoUrl}
             fallback={require("../../assets/images/login_screen_logo.png")}
             style={styles.logoImage}
             resizeMode="contain"
           />
-          {/* Right placeholder to keep logo perfectly centered */}
+
           <View style={styles.headerRightPlaceholder} />
         </View>
-        {/* Title Section */}
+
+        {/* Title */}
         <View style={styles.logoAndTitle}>
-          <Text
-            style={styles.headingOne}
-            allowFontScaling
-            maxFontSizeMultiplier={1.3}
-          >
-            {title}
-          </Text>
-          <Text
-            style={styles.headingTwo}
-            allowFontScaling
-            maxFontSizeMultiplier={1.2}
-          >
+          <Text style={styles.headingOne}>{title}</Text>
+          <Text style={styles.headingTwo}>
             {description}
             {maskedPhone}
           </Text>
         </View>
 
-        {/* Form Section */}
+        {/* OTP Inputs */}
         <View style={styles.form}>
-          {/* OTP Boxes */}
           <View style={styles.otpRow}>
             {code.map((char, idx) => (
               <TextInput
@@ -266,7 +247,7 @@ const OTPVerification = () => {
                   handleKeyPress(nativeEvent.key, idx)
                 }
                 keyboardType="number-pad"
-                maxLength={1}
+                maxLength={6}
                 style={[
                   styles.otpBox,
                   focusedIndex === idx && styles.otpBoxFocused,
@@ -274,60 +255,42 @@ const OTPVerification = () => {
                 placeholder="-"
                 placeholderTextColor={colors.gray600}
                 textAlign="center"
-                returnKeyType="next"
                 autoFocus={idx === 0}
                 selectTextOnFocus
                 onFocus={() => setFocusedIndex(idx)}
                 onBlur={() => setFocusedIndex(null)}
-                allowFontScaling
-                maxFontSizeMultiplier={1.2}
               />
             ))}
           </View>
 
+          {/* Timer + Resend */}
           <View style={styles.dontreceiveandandresend}>
-            {!showResend ? (
-              <View style={styles.rememberContainer}>
+            <Text style={styles.rememberText}>{formatTime(timeLeft)}</Text>
+
+            <View style={styles.resendRow}>
+              <Text style={styles.dontreceiveText}>{text}</Text>
+
+              <TouchableOpacity
+                onPress={handleResend}
+                disabled={timeLeft !== 0 || loading}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
                 <Text
-                  style={styles.rememberText}
-                  allowFontScaling
-                  maxFontSizeMultiplier={1.2}
+                  style={[
+                    styles.resendText,
+                    timeLeft !== 0 && { color: colors.gray500 },
+                  ]}
                 >
-                  {formatTime(timeLeft)}
+                  {resendText}
                 </Text>
-              </View>
-            ) : (
-              <View style={styles.resendRow}>
-                <Text
-                  style={styles.dontreceiveText}
-                  allowFontScaling
-                  maxFontSizeMultiplier={1.2}
-                >
-                  {text}
-                </Text>
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  onPress={handleResend}
-                  disabled={loading}
-                >
-                  <Text
-                    style={styles.resendText}
-                    allowFontScaling
-                    maxFontSizeMultiplier={1.2}
-                  >
-                    {resendText}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* Verify Button */}
           <Button
             text={btnText}
-            onPress={handleVerify}
             loading={loading}
+            onPress={handleVerify}
             disabled={code.join("").length !== 6}
           />
         </View>
@@ -344,12 +307,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     paddingHorizontal: 20,
     paddingBottom: 20,
-    overflow: "hidden",
   },
   internalContainer: {
     alignItems: "center",
     gap: 32,
-    alignSelf: "center",
   },
   spacer32: {
     minHeight: 32,
@@ -365,7 +326,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 8,
-    // marginBottom: 12,
   },
   headerIconButton: {
     width: 32,
@@ -376,7 +336,7 @@ const styles = StyleSheet.create({
   logoImage: {
     width: 100,
     minHeight: 40,
-    aspectRatio: 2.5, // Maintains logo proportions
+    aspectRatio: 2.5,
   },
   headerRightPlaceholder: {
     width: 32,
@@ -384,32 +344,23 @@ const styles = StyleSheet.create({
   },
   headingOne: {
     fontFamily: fonts.family.medium,
-    fontWeight: fonts.weight.medium,
     fontSize: typography.headingText,
-    textAlign: "center",
     color: colors.black,
-    // marginBottom: 2,
   },
   headingTwo: {
     fontFamily: fonts.family.regular,
-    fontWeight: fonts.weight.regular,
     fontSize: typography.headingText1,
-    textAlign: "center",
     color: colors.gray600,
     maxWidth: 256,
-    minHeight: 34,
-    alignSelf: "center",
+    textAlign: "center",
   },
   form: {
     width: "100%",
     gap: 16,
   },
   otpRow: {
-    width: "100%",
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 0,
-    marginBottom: 6,
   },
   otpBox: {
     width: "15%",
@@ -418,39 +369,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#F6F6F6",
     fontSize: typography.serviceText,
     fontFamily: fonts.family.regular,
-    fontWeight: fonts.weight.regular,
-    lineHeight: Math.round(typography.serviceText * 1.2),
-    letterSpacing: 0,
     textAlign: "center",
     color: colors.black,
-    paddingRight: 16,
-    paddingLeft: 16,
   },
   otpBoxFocused: {
     backgroundColor: colors.white,
     borderWidth: 2,
     borderColor: colors.button,
-  },
-  inputWrapper: {
-    width: "100%",
-    minHeight: 54,
-    borderRadius: 12,
-    backgroundColor: "#F6F6F6",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-  },
-  input: {
-    flex: 1,
-    paddingVertical: 14, // prevents clipping at larger text sizes
-    fontSize: typography.cardHeadText2,
-    color: colors.black,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  trailingIconButton: {
-    marginLeft: 12,
   },
   dontreceiveandandresend: {
     width: "100%",
@@ -461,7 +386,6 @@ const styles = StyleSheet.create({
   },
   dontreceiveText: {
     fontFamily: fonts.family.regular,
-    fontWeight: fonts.weight.regular,
     fontSize: typography.headingText1,
     color: colors.gray500,
   },
@@ -472,19 +396,12 @@ const styles = StyleSheet.create({
   },
   resendText: {
     fontFamily: fonts.family.regular,
-    fontWeight: fonts.weight.regular,
     fontSize: typography.headingText1,
     color: colors.deeptealColor,
   },
   rememberText: {
     fontFamily: fonts.family.regular,
-    fontWeight: fonts.weight.regular,
     fontSize: typography.serviceText,
     color: colors.gray600,
-  },
-  rememberContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
   },
 });
