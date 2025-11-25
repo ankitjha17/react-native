@@ -195,12 +195,7 @@ const LoginScreen = () => {
 
         {/* Login Button */}
         <View style={styles.fullWidth}>
-          <Button
-            text={btnText}
-            onPress={handleLogin}
-            loading={loading}
-            disabled={loading}
-          />
+          <Button text={btnText} onPress={handleLogin} loading={loading} />
           {/* Environment Name Display */}
           <Text
             style={styles.envText}

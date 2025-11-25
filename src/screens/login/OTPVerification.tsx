@@ -264,7 +264,7 @@ const OTPVerification = () => {
             text={btnText}
             loading={loading}
             onPress={handleVerify}
-            disabled={code.join("").length !== 6}
+            disabled={code.join("").length !== 6 || loading}
           />
         </View>
       </View>
