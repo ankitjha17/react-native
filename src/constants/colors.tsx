@@ -31,6 +31,14 @@ const colors = {
   blackColor: "#111111",
   openColor: "#FFCD87",
   openTextColor: "#A66C00",
+  whiteAlpha85: "rgba(255,255,255,0.85)",
+  successGreen: "#23AA49",
+  errorRed: "#C44343",
+  tealGreen: "#149087",
+  darkBlackAlpha: "#16151599",
+  buttonSelected: "#01999A",
+  badgeActiveBg: "#D5F5DA",
+  badgeInactiveBg: "#FFEEEE",
 };
 
 export default colors;

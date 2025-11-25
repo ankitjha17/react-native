@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     fontWeight: fonts.weight.medium,
     fontSize: 14,
     lineHeight: Math.round(14 * 1.4), // 140% line height
-    color: "#161515",
+    color: colors.darkBlack,
     textAlign: "right",
     letterSpacing: 0,
   },
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     lineHeight: Math.round(14 * 1.4), // 140% line height
     letterSpacing: 0,
     textAlign: "right",
-    color: "#999999",
+    color: colors.gray500,
   },
   overlay: {
     flex: 1,

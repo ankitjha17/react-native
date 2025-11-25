@@ -162,7 +162,7 @@ export default function Home() {
                   maxFontSizeMultiplier={1.2}
                   accessibilityRole="text"
                 >
-                  summary at a glance
+                  amirbreda07@gmail.com
                 </Text>
               </View>
               <View style={{ marginLeft: 12 }}>
@@ -260,22 +260,22 @@ const styles = StyleSheet.create({
   },
   greeting: {
     color: colors.white,
-    fontSize: typography.buttonText,
-    fontFamily: fonts.family.medium,
+    fontSize: typography.greetingText,
+    fontFamily: fonts.family.semiBold,
     fontWeight: fonts.weight.semiBold,
     textAlign: "right",
     letterSpacing: 0,
-    lineHeight: Math.round(typography.buttonText * 1.2),
+    lineHeight: Math.round(typography.greetingText * 1.2),
   },
   subtitle: {
     color: colors.white,
     fontSize: typography.serviceText,
-    fontFamily: fonts.family.regular,
+    fontFamily: fonts.family.light,
     fontWeight: fonts.weight.light,
     textAlign: "right",
     marginTop: 2,
     letterSpacing: 0,
-    lineHeight: Math.round(typography.serviceText * 1.17),
+    lineHeight: Math.round(typography.serviceText * 1.2),
   },
   avatar: {
     width: 40,

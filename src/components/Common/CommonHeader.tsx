@@ -10,6 +10,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import fonts from "@/src/constants/fonts";
+import typography from "@/src/constants/typography";
+import colors from "@/src/constants/colors";
 
 interface CommonHeaderProps {
   title: string;
@@ -115,9 +117,9 @@ const styles = StyleSheet.create({
   },
   headingText: {
     fontFamily: fonts.family.bold,
-    fontSize: 16,
+    fontSize: typography.greetingText,
     lineHeight: 28,
-    color: "#FFFFFF",
+    color: colors.white,
     textAlign: "right",
     marginBottom: 4,
   },
@@ -127,8 +129,10 @@ const styles = StyleSheet.create({
   },
   subtitleText: {
     fontFamily: fonts.family.regular,
-    fontSize: 14,
-    lineHeight: 24,
+    fontWeight: fonts.weight.regular,
+    fontSize: typography.headingText1,
+    lineHeight: Math.round(typography.headingText1 * 1.2),
+    letterSpacing: 0,
     color: "rgba(255,255,255,0.85)",
     textAlign: "right",
   },

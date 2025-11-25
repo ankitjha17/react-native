@@ -32,10 +32,10 @@ export default function VehicleClaimProcess() {
     { id: "8", label: "Natural Damage" },
     { id: "9", label: "Personal Injury" },
   ];
-  const [selectedClaimTypeId, setSelectedClaimTypeId] = React.useState<
+  const [selectedClaimTypeId, setSelectedClaimTypeId] = useState<
     string | undefined
   >(undefined);
-  const [otherPartyPhone, setOtherPartyPhone] = React.useState("");
+  const [otherPartyPhone, setOtherPartyPhone] = useState("");
   const countryCode = "+972";
   const [incidentDetails, setIncidentDetails] = useState<string>("");
   const [insuredVehicleDamageDescription, setInsuredVehicleDamageDescription] =

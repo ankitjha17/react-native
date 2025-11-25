@@ -154,8 +154,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   policyNoValue: {
-    color: "#149087",
-    fontWeight: "500",
+    color: colors.tealGreen,
+    fontWeight: fonts.weight.medium,
   },
 
   badgeContainer: {
@@ -172,19 +172,19 @@ const styles = StyleSheet.create({
     opacity: 1,
   },
   badgeActive: {
-    backgroundColor: "#D5F5DA",
+    backgroundColor: colors.badgeActiveBg,
   },
   badgeInactive: {
-    backgroundColor: "#FFEEEE",
+    backgroundColor: colors.badgeInactiveBg,
   },
   badgeText: {
     fontSize: 13,
-    fontWeight: "bold",
+    fontWeight: fonts.weight.bold,
   },
   badgeTextActive: {
-    color: "#23AA49",
+    color: colors.successGreen,
   },
   badgeTextInactive: {
-    color: "#C44343",
+    color: colors.errorRed,
   },
 });

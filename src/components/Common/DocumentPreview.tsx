@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     lineHeight: Math.round(14 * 1.2), // 120% line height
     letterSpacing: 0,
     textAlign: "right",
-    color: "#16151599",
+    color: colors.darkBlackAlpha,
   },
   documentContainer: {
     width: 335,

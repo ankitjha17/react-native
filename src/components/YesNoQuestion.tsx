@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonSelected: {
-    backgroundColor: "#01999A",
+    backgroundColor: colors.buttonSelected,
   },
   buttonText: {
     fontFamily: fonts.family.semiBold,

@@ -36,7 +36,7 @@ export default function PolicyDetails() {
     startDate,
     validTill,
     premiumPerMonth,
-    claimNumber,
+    // claimNumber,
   } = route.params;
 
   const policyDetailsData: DetailItem[] = [
@@ -116,7 +116,7 @@ export default function PolicyDetails() {
         <View style={[styles.policyOverviewWrapper, { width: contentWidth }]}>
           <PolicyOverviewCard
             insuranceName={name || "Insurance"}
-            claimNumber={claimNumber || "To be assign"}
+            // claimNumber={claimNumber || "To be assign"}
             policyNumber={policyNumber || "N/A"}
             status={status || "Active"}
           />

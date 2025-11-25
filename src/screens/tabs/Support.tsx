@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import ActionButtonGroup from "../../components/Common/ActionButtonGroup";
 import colors from "../../constants/colors";
+import fonts from "../../constants/fonts";
 import typography from "../../constants/typography";
 import Button from "@/src/components/Common/Button";
 
@@ -102,7 +103,7 @@ const styles = StyleSheet.create({
   },
   header: {
     fontSize: typography.tabText,
-    fontWeight: "500",
+    fontWeight: fonts.weight.medium,
     marginVertical: 16,
   },
   image: {
@@ -111,8 +112,8 @@ const styles = StyleSheet.create({
     aspectRatio: 1.25, // Maintains image proportions
   },
   title: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: typography.greetingText,
+    fontWeight: fonts.weight.bold,
     marginTop: 4,
     textAlign: "center",
   },

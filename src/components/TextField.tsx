@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#1111111F",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.white,
     paddingTop: 8,
     paddingBottom: 8,
     paddingLeft: 16,
@@ -197,6 +197,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   placeholderText: {
-    color: "#999999",
+    color: colors.gray500,
   },
 });

@@ -5,6 +5,7 @@ import React, {
   useReducer,
   ReactNode,
   useEffect,
+  useState,
 } from "react";
 import type { Session, AuthStatus, LoginParams, OtpParams } from "./types";
 import {
@@ -169,7 +170,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 // Provider Component
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
-  const [isBootstrapped, setIsBootstrapped] = React.useState(false);
+  const [isBootstrapped, setIsBootstrapped] = useState(false);
 
   // React Query hooks
   const sendOtpMutation = useSendOtp();

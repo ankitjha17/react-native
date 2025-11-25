@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
   },
   countryCode: {
     marginRight: 8,
-    fontWeight: "600",
+    fontWeight: fonts.weight.semiBold,
     color: colors.gray500,
   },
   phoneInput: {
