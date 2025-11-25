@@ -16,10 +16,11 @@ import { ENV_NAME } from "../../config/env";
 import { useCMSData } from "../../hooks/queries/useCMSData";
 import { ReusableImage } from "../../components/ReusableImage";
 import Button from "@/src/components/Common/Button";
+import LoginHeader from "@/src/components/Common/LoginHeader";
 
 const LoginScreen = () => {
   const { width } = useWindowDimensions();
-  const { navigateToOTP } = useAuthNavigation();
+  const { navigateToOTP, goBack } = useAuthNavigation();
   const {
     requestLogin,
     loading,
@@ -124,12 +125,7 @@ const LoginScreen = () => {
         <View style={styles.spacer32} />
         {/* Logo & Title Section */}
         <View style={styles.logoAndTitle}>
-          <ReusableImage
-            uri={logoUrl}
-            fallback={require("../../assets/images/login_screen_logo.png")}
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
+          <LoginHeader logoUrl={logoUrl} onBack={goBack} />
           <Text
             style={styles.headingOne}
             allowFontScaling
@@ -241,10 +237,6 @@ const styles = StyleSheet.create({
     gap: 14,
     alignItems: "center",
     marginBottom: 24,
-  },
-  logoImage: {
-    width: 120,
-    height: 50,
   },
   headingOne: {
     fontFamily: fonts.family.medium,

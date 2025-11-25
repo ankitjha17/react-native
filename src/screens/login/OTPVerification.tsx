@@ -9,7 +9,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRoute } from "@react-navigation/native";
-import { Ionicons as Icon } from "@expo/vector-icons";
 import { useAuth } from "../../auth/AuthContext";
 import colors from "../../constants/colors";
 
@@ -19,8 +18,8 @@ import { useAuthNavigation } from "../../hooks/useAuthNavigation";
 import ErrorToast from "../../components/ErrorToast";
 import { useErrorToast } from "../../hooks/useErrorToast";
 import { useCMSData } from "../../hooks/queries/useCMSData";
-import { ReusableImage } from "../../components/ReusableImage";
 import Button from "@/src/components/Common/Button";
+import LoginHeader from "@/src/components/Common/LoginHeader";
 
 const OTPVerification = () => {
   const { width } = useWindowDimensions();
@@ -193,37 +192,11 @@ const OTPVerification = () => {
 
   return (
     <SafeAreaView style={styles.mainContainer}>
-      <ErrorToast
-        message={toastError || ""}
-        type={errorType}
-        visible={!!toastError}
-        onDismiss={clearToastError}
-        duration={5000}
-        position="top"
-      />
-
       <View style={[styles.internalContainer, { width: contentWidth }]}>
         <View style={styles.spacer32} />
 
         {/* Header */}
-        <View style={styles.headerRow}>
-          <TouchableOpacity
-            onPress={goBack}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            style={styles.headerIconButton}
-          >
-            <Icon name="chevron-back-outline" size={24} color={colors.black} />
-          </TouchableOpacity>
-
-          <ReusableImage
-            uri={logoUrl}
-            fallback={require("../../assets/images/login_screen_logo.png")}
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
-
-          <View style={styles.headerRightPlaceholder} />
-        </View>
+        <LoginHeader logoUrl={logoUrl} onBack={goBack} />
 
         {/* Title */}
         <View style={styles.logoAndTitle}>
@@ -295,6 +268,14 @@ const OTPVerification = () => {
           />
         </View>
       </View>
+      <ErrorToast
+        message={toastError || ""}
+        type={errorType}
+        visible={!!toastError}
+        onDismiss={clearToastError}
+        duration={5000}
+        position="bottom"
+      />
     </SafeAreaView>
   );
 };
@@ -319,28 +300,6 @@ const styles = StyleSheet.create({
     gap: 14,
     alignItems: "center",
     marginBottom: 16,
-  },
-  headerRow: {
-    width: "100%",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 8,
-  },
-  headerIconButton: {
-    width: 32,
-    minHeight: 32,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoImage: {
-    width: 100,
-    minHeight: 40,
-    aspectRatio: 2.5,
-  },
-  headerRightPlaceholder: {
-    width: 32,
-    minHeight: 32,
   },
   headingOne: {
     fontFamily: fonts.family.medium,
